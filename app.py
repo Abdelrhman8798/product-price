@@ -5,7 +5,7 @@ import os
 import numpy as np 
 import warnings
 
-# إخفاء تحذيرات Scikit-learn (التي تظهر بعد حل المشكلة)
+# إخفاء تحذيرات Scikit-learn
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # ------------------------------------------------
@@ -18,7 +18,7 @@ FEATURES_FILE = 'final_feature_names.joblib'
 def load_assets():
     """تحميل الـ Pipeline المُبسَّط وقائمة الأعمدة النهائية."""
     if not (os.path.exists(PIPELINE_FILE) and os.path.exists(FEATURES_FILE)):
-        st.error("Model files or feature list not found. Please check deployment.")
+        st.error("Model assets not found. Please check deployment.")
         return None, None
     try:
         pipeline = joblib.load(PIPELINE_FILE)
@@ -46,55 +46,50 @@ if pipeline is not None:
 # ------------------------------------------------
 
 st.set_page_config(page_title="Product Price Predictor", layout="wide")
-st.title("💰 Supply Chain Price Prediction System")
+st.title("💰 Product Price Prediction")
+st.markdown("---")
+
 
 if pipeline is not None:
     
-    st.subheader("Enter Product and Logistics Features")
-
-    col1, col2, col3 = st.columns(3)
+    col_input, col_result = st.columns([2, 1])
 
     # =================================================================
-    # COL 1: Product and Manufacturing Details
+    # COL_INPUT: جميع المدخلات في عمودين
     # =================================================================
-    with col1:
-        st.header("Product & Manufacturing")
+    with col_input:
+        st.subheader("1. Enter Product Details")
         
-        product_type = st.selectbox("Product type", product_types)
-        
-        # استخدام st.number_input بدلاً من st.slider
-        # يرجى تعديل القيم min_value, max_value, و value حسب بياناتك
-        production_volumes = st.number_input("Production volumes", min_value=1.0, max_value=5000.0, value=1000.0, format="%.0f")
-        manufacturing_costs = st.number_input("Manufacturing costs ($)", min_value=10.0, max_value=200.0, value=50.0, format="%.2f")
-        manufacturing_lead_time = st.number_input("Manufacturing lead time (Days)", min_value=1, max_value=30, value=15, format="%.0f")
-        defect_rates = st.number_input("Defect rates", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
-        order_quantities = st.number_input("Order quantities", min_value=1.0, max_value=2000.0, value=500.0, format="%.0f")
+        col_cat, col_num = st.columns(2)
 
+        # المدخلات الفئوية (Categorical)
+        with col_cat:
+            st.markdown("**Categorical Features**")
+            product_type = st.selectbox("Product type", product_types)
+            location = st.selectbox("Location", locations)
+            shipping_carriers_input = st.selectbox("Shipping carriers", shipping_carriers)
+            transportation_modes_input = st.selectbox("Transportation modes", transportation_modes)
 
-    # =================================================================
-    # COL 2: Location and Shipping
-    # =================================================================
-    with col2:
-        st.header("Location & Shipping")
-
-        location = st.selectbox("Location", locations)
-        shipping_carriers_input = st.selectbox("Shipping carriers", shipping_carriers)
-        transportation_modes_input = st.selectbox("Transportation modes", transportation_modes)
-
-        # استخدام st.number_input بدلاً من st.slider
-        lead_time = st.number_input("Lead time (Days)", min_value=1, max_value=40, value=20, format="%.0f")
-        shipping_times = st.number_input("Shipping times (Days)", min_value=1, max_value=15, value=7, format="%.0f")
-        shipping_costs = st.number_input("Shipping costs ($)", min_value=1.0, max_value=30.0, value=15.0, format="%.2f")
-        
-        # وضع حقل Costs في Col 2
-        costs = st.number_input("Costs ($)", min_value=50.0, max_value=300.0, value=150.0, format="%.2f")
+        # المدخلات الرقمية (Numerical) - بدون قيود على الحد الأدنى
+        with col_num:
+            st.markdown("**Numerical Features**")
+            # إزالة القيود (min_value=0.0)
+            production_volumes = st.number_input("Production volumes", min_value=0.0, value=1000.0, format="%.0f")
+            manufacturing_costs = st.number_input("Manufacturing costs ($)", min_value=0.0, value=50.0, format="%.2f")
+            costs = st.number_input("Costs ($)", min_value=0.0, value=150.0, format="%.2f")
+            order_quantities = st.number_input("Order quantities", min_value=0.0, value=500.0, format="%.0f")
+            manufacturing_lead_time = st.number_input("Manufacturing lead time (Days)", min_value=0, value=15, format="%.0f")
+            lead_time = st.number_input("Lead time (Days)", min_value=0, value=20, format="%.0f")
+            shipping_times = st.number_input("Shipping times (Days)", min_value=0, value=7, format="%.0f")
+            shipping_costs = st.number_input("Shipping costs ($)", min_value=0.0, value=15.0, format="%.2f")
+            defect_rates = st.number_input("Defect rates", min_value=0.0, max_value=1.0, value=0.1, step=0.01, format="%.2f")
 
     # =================================================================
-    # COL 3: Prediction Button and Results
+    # COL_RESULT: زر التوقع والنتائج
     # =================================================================
-    with col3:
-        st.header("Prediction")
-        st.markdown("\n\n\n\n\n") # إضافة مسافة فاصلة
+    with col_result:
+        st.subheader("2. Prediction Result")
+        st.markdown("\n\n\n\n\n\n\n") # إضافة مسافة فاصلة
 
         if st.button("PREDICT PRICE", type="primary"):
             
@@ -136,8 +131,6 @@ if pipeline is not None:
                 st.metric(
                     label="Predicted Product Price", 
                     value=f"${predicted_price[0]:.2f}", 
-                    delta="Model Confidence High" # يمكنك تغيير الرسالة
                 )
-                st.balloons()
             except Exception as e:
                 st.error(f"Prediction Error: {e}")
