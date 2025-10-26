@@ -75,6 +75,7 @@ if pipeline is not None:
             st.markdown("**Numerical Features**")
             
             # قيم الكميات والتكاليف
+            # تم إضافة .0 لجميع قيم value و min_value لحل تحذير NumberInput
             production_volumes = st.number_input("Production volumes", min_value=0.0, value=1000.0, format="%.0f")
             order_quantities = st.number_input("Order quantities", min_value=0.0, value=500.0, format="%.0f")
             manufacturing_costs = st.number_input("Manufacturing costs ($)", min_value=0.0, value=50.0, format="%.2f")
@@ -94,4 +95,51 @@ if pipeline is not None:
     # =================================================================
     with col_result:
         st.subheader("2. Prediction Result")
-        st.markdown("\n\n\n\
+        st.markdown("\n\n\n\n\n\n\n")
+
+        if st.button("PREDICT PRICE", type="primary"):
+            
+            # بناء DataFrame من مدخلات المستخدم بالترتيب الأصلي
+            user_data = pd.DataFrame({
+                'Product type': [product_type], 
+                'Production volumes': [production_volumes], 
+                'Manufacturing costs': [manufacturing_costs], 
+                'Manufacturing lead time': [manufacturing_lead_time],
+                'Defect rates': [defect_rates], 
+                'Lead time': [lead_time], 
+                'Shipping times': [shipping_times],
+                'Shipping carriers': [shipping_carriers_input], 
+                'Shipping costs': [shipping_costs],
+                'Transportation modes': [transportation_modes_input], 
+                'Order quantities': [order_quantities],
+                'Costs': [costs], 
+                'Location': [location]
+            })
+            
+            # 1. تحديد الأعمدة الفئوية
+            categorical_cols = ['Product type', 'Shipping carriers', 'Location', 'Transportation modes']
+            
+            # 2. تطبيق One-Hot Encoding
+            user_data_encoded = pd.get_dummies(user_data, columns=categorical_cols, drop_first=False)
+            
+            # 3. التأكد من أن جميع الأعمدة رقمية
+            for col in user_data_encoded.columns:
+                if user_data_encoded[col].dtype == bool:
+                    user_data_encoded[col] = user_data_encoded[col].astype(int)
+
+            # 4. مطابقة الأعمدة النهائية (The Crucial Step)
+            final_input_data = user_data_encoded.reindex(columns=final_cols, fill_value=0)
+            
+            # 5. التوقع
+            try:
+                # التحقق من أن جميع الأعمدة الرقمية هي float64 أو متوافقة
+                final_input_data = final_input_data.astype(np.float64)
+                
+                predicted_price = pipeline.predict(final_input_data)
+                
+                st.metric(
+                    label="Predicted Product Price", 
+                    value=f"${predicted_price[0]:.2f}", 
+                )
+            except Exception as e:
+                st.error(f"Prediction Error: {e}")
